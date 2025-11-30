@@ -7,20 +7,28 @@ const matchers = Object.keys(routeAccessMap).map((route) => ({
   allowedRoles: routeAccessMap[route],
 }));
 
-console.log(matchers);
-
 export default clerkMiddleware((auth, req) => {
-  // if (isProtectedRoute(req)) auth().protect()
+  const matched = matchers.find(({ matcher }) => matcher(req));
 
-  const { sessionClaims } = auth();
+  // Route is not protected by our map.
+  if (!matched) return NextResponse.next();
+
+  const { sessionId, sessionClaims } = auth();
+
+  // No session: send to Clerk sign-in.
+  if (!sessionId) return auth().redirectToSignIn();
 
   const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-  for (const { matcher, allowedRoles } of matchers) {
-    if (matcher(req) && !allowedRoles.includes(role!)) {
-      return NextResponse.redirect(new URL(`/${role}`, req.url));
-    }
+  // Missing role metadata: force sign-in to refresh claims.
+  if (!role) return auth().redirectToSignIn();
+
+  // Role mismatch: redirect to the user’s own home instead of looping.
+  if (!matched.allowedRoles.includes(role)) {
+    return NextResponse.redirect(new URL(`/${role}`, req.url));
   }
+
+  return NextResponse.next();
 });
 
 export const config = {
