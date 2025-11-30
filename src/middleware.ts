@@ -18,10 +18,13 @@ export default clerkMiddleware((auth, req) => {
   // No session: send to Clerk sign-in.
   if (!sessionId) return auth().redirectToSignIn();
 
-  const role = (sessionClaims?.metadata as { role?: string })?.role;
+  // Prefer Clerk JWT metadata; fall back to publicMetadata for safety.
+  const role =
+    (sessionClaims?.metadata as { role?: string })?.role ??
+    (sessionClaims?.publicMetadata as { role?: string })?.role;
 
-  // Missing role metadata: force sign-in to refresh claims.
-  if (!role) return auth().redirectToSignIn();
+  // Missing role metadata: send users to setup so they can add one.
+  if (!role) return NextResponse.redirect(new URL("/setup", req.url));
 
   // Role mismatch: redirect to the user’s own home instead of looping.
   if (!matched.allowedRoles.includes(role)) {

@@ -13,12 +13,21 @@ const LoginPage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const role = user?.publicMetadata.role;
+    if (!isLoaded) return;
 
-    if (role) {
+    // If signed in with role, redirect to dashboard
+    const role = user?.publicMetadata?.role;
+    if (isSignedIn && role) {
       router.push(`/${role}`);
+      return;
     }
-  }, [user, router]);
+
+    // If signed in but no role, redirect to setup
+    if (isSignedIn && !role) {
+      router.push("/setup");
+      return;
+    }
+  }, [isLoaded, isSignedIn, user, router]);
 
   return (
     <div className="h-screen flex items-center justify-center bg-lamaSkyLight">
@@ -35,11 +44,12 @@ const LoginPage = () => {
           <Clerk.GlobalError className="text-sm text-red-400" />
           <Clerk.Field name="identifier" className="flex flex-col gap-2">
             <Clerk.Label className="text-xs text-gray-500">
-              Username
+              Email Address
             </Clerk.Label>
             <Clerk.Input
-              type="text"
+              type="email"
               required
+              placeholder="your-email@example.com"
               className="p-2 rounded-md ring-1 ring-gray-300"
             />
             <Clerk.FieldError className="text-xs text-red-400" />
@@ -61,6 +71,20 @@ const LoginPage = () => {
           >
             Sign In
           </SignIn.Action>
+          <div className="mt-4 p-3 bg-yellow-50 rounded text-xs text-gray-700 border border-yellow-200">
+            <p className="font-semibold mb-1">💡 Sign In With:</p>
+            <p className="mb-2">
+              Use your <strong>email address</strong> from Clerk
+              <br />
+              (e.g., your-email@example.com)
+            </p>
+            <a
+              href="/setup"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              ➜ After signing in, click here to add your role
+            </a>
+          </div>
         </SignIn.Step>
       </SignIn.Root>
     </div>
