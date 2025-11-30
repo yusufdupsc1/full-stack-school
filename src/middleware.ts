@@ -2,33 +2,61 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { routeAccessMap } from "./lib/settings";
 import { NextResponse } from "next/server";
 
+// Define public routes that don't require authentication
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/",
+  "/api/webhook(.*)",
+]);
+
 const matchers = Object.keys(routeAccessMap).map((route) => ({
   matcher: createRouteMatcher([route]),
   allowedRoles: routeAccessMap[route],
 }));
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
+  // Allow public routes without any checks
+  if (isPublicRoute(req)) {
+    return NextResponse.next();
+  }
+
+  // CRITICAL FIX: Use await for async auth() call
+  const { sessionId, sessionClaims } = await auth();
+
+  // Check if route is protected by role-based access map
   const matched = matchers.find(({ matcher }) => matcher(req));
 
-  // Route is not protected by our map.
-  if (!matched) return NextResponse.next();
+  // No session: redirect to sign-in
+  if (!sessionId) {
+    return auth().redirectToSignIn();
+  }
 
-  const { sessionId, sessionClaims } = auth();
-
-  // No session: send to Clerk sign-in.
-  if (!sessionId) return auth().redirectToSignIn();
-
-  // Prefer Clerk JWT metadata; fall back to publicMetadata for safety.
+  // Get user role from metadata
   const role =
     (sessionClaims?.metadata as { role?: string })?.role ??
     (sessionClaims?.publicMetadata as { role?: string })?.role;
 
-  // Missing role metadata: send users to setup so they can add one.
-  if (!role) return NextResponse.redirect(new URL("/setup", req.url));
+  // Missing role: redirect to setup page (prevent infinite loop)
+  if (!role) {
+    if (!req.nextUrl.pathname.startsWith("/setup")) {
+      return NextResponse.redirect(new URL("/setup", req.url));
+    }
+    return NextResponse.next();
+  }
 
-  // Role mismatch: redirect to the user’s own home instead of looping.
-  if (!matched.allowedRoles.includes(role)) {
-    return NextResponse.redirect(new URL(`/${role}`, req.url));
+  // If route is not in protected map, allow access
+  if (!matched) {
+    return NextResponse.next();
+  }
+
+  // Check role permissions and prevent redirect loops
+  const targetRolePath = `/${role}`;
+  const isOnTargetRolePage = req.nextUrl.pathname.startsWith(targetRolePath);
+  
+  // If user doesn't have permission and is not already on their role page
+  if (!matched.allowedRoles.includes(role) && !isOnTargetRolePage) {
+    return NextResponse.redirect(new URL(targetRolePath, req.url));
   }
 
   return NextResponse.next();
@@ -36,9 +64,7 @@ export default clerkMiddleware((auth, req) => {
 
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

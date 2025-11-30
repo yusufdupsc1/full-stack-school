@@ -1,170 +1,82 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import { useUser } from "@clerk/nextjs";
-import { useState } from "react";
+export default async function SetupPage() {
+  const { userId, sessionClaims } = await auth();
 
-export default function SetupPage() {
-  const { user, isLoaded } = useUser();
-  const [role, setRole] = useState<string>("admin");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-
-  const handleAddRole = async () => {
-    if (!user?.id) {
-      setError("You must be signed in first");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-    setError("");
-
-    try {
-      const response = await fetch("/api/admin/setup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: user.id,
-          role: role,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(
-          `✅ Success! Role "${role}" has been added to your account. Refresh the page to access the dashboard.`
-        );
-      } else {
-        setError(`❌ Error: ${data.error}`);
-      }
-    } catch (err) {
-      setError(`❌ Error: ${(err as Error).message}`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!isLoaded) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        Loading...
-      </div>
-    );
+  if (!userId) {
+    redirect("/sign-in");
   }
 
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-lamaSkyLight">
-        <div className="bg-white p-12 rounded-lg shadow-lg text-center">
-          <h1 className="text-2xl font-bold mb-4">Setup Required</h1>
-          <p className="text-gray-600 mb-6">
-            Please sign in first at /sign-in to set up your account
-          </p>
-          <a
-            href="/sign-in"
-            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
-          >
-            Go to Sign In
-          </a>
-        </div>
-      </div>
-    );
+  // Check if role already exists
+  const role =
+    (sessionClaims?.metadata as { role?: string })?.role ??
+    (sessionClaims?.publicMetadata as { role?: string })?.role;
+
+  // If role exists, redirect to their dashboard
+  if (role) {
+    redirect(`/${role}`);
   }
 
   return (
-    <div className="min-h-screen bg-lamaSkyLight flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
-        <h1 className="text-3xl font-bold mb-2 text-center">
-          🎓 Dashboard Setup
+    <div className="flex min-h-screen items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md rounded-lg bg-white p-8 shadow-lg">
+        <div className="mb-6 flex justify-center">
+          <div className="rounded-full bg-yellow-100 p-3">
+            <svg
+              className="h-8 w-8 text-yellow-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+          </div>
+        </div>
+        
+        <h1 className="mb-4 text-center text-2xl font-bold text-gray-900">
+          Account Setup Required
         </h1>
-        <p className="text-gray-600 text-center mb-6">
-          Add a role to your Clerk account to access the dashboard
-        </p>
-
-        <div className="mb-6">
-          <p className="text-sm font-semibold text-gray-700 mb-2">
-            Signed in as:
+        
+        <div className="mb-6 rounded-lg bg-blue-50 p-4">
+          <p className="text-center text-sm text-blue-800">
+            Your account needs to be assigned a role by an administrator before you can access the system.
           </p>
-          <div className="bg-gray-50 p-3 rounded border border-gray-200">
-            <p className="font-mono text-sm text-gray-900">
-              {user.emailAddresses[0]?.emailAddress || user.username}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">ID: {user.id}</p>
-          </div>
         </div>
 
-        <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-3">
-            Select Your Role:
-          </label>
-          <div className="space-y-2">
-            {[
-              { value: "admin", label: "👨‍💼 Admin", desc: "Full system access" },
-              {
-                value: "teacher",
-                label: "👨‍🏫 Teacher",
-                desc: "Manage classes and grades",
-              },
-              {
-                value: "student",
-                label: "👨‍🎓 Student",
-                desc: "View assignments and results",
-              },
-              {
-                value: "parent",
-                label: "👨‍👩‍👧 Parent",
-                desc: "Track student progress",
-              },
-            ].map((roleOption) => (
-              <label
-                key={roleOption.value}
-                className="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-blue-50 transition"
-              >
-                <input
-                  type="radio"
-                  name="role"
-                  value={roleOption.value}
-                  checked={role === roleOption.value}
-                  onChange={(e) => setRole(e.target.value)}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <div className="ml-3">
-                  <p className="font-semibold text-gray-900">
-                    {roleOption.label}
-                  </p>
-                  <p className="text-xs text-gray-500">{roleOption.desc}</p>
-                </div>
-              </label>
-            ))}
-          </div>
+        <div className="space-y-3 text-sm text-gray-600">
+          <p>
+            <strong>What happens next?</strong>
+          </p>
+          <ul className="ml-4 list-disc space-y-2">
+            <li>An administrator will review your account</li>
+            <li>You'll be assigned an appropriate role (Admin, Teacher, Student, or Parent)</li>
+            <li>You'll receive an email notification once your account is activated</li>
+          </ul>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
-            {error}
-          </div>
-        )}
+        <div className="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p className="text-xs text-gray-500">
+            <strong>Need help?</strong> Contact your school administrator at{" "}
+            <a href="mailto:admin@school.com" className="text-blue-600 hover:underline">
+              admin@school.com
+            </a>
+          </p>
+        </div>
 
-        {message && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded text-green-700 text-sm">
-            {message}
-          </div>
-        )}
-
-        <button
-          onClick={handleAddRole}
-          disabled={loading}
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition"
-        >
-          {loading ? "Setting up..." : "✨ Add Role & Access Dashboard"}
-        </button>
-
-        <p className="text-xs text-gray-500 text-center mt-4">
-          After adding your role, you may need to refresh the page or sign out
-          and back in.
-        </p>
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => window.location.reload()}
+            className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Refresh Status
+          </button>
+        </div>
       </div>
     </div>
   );
