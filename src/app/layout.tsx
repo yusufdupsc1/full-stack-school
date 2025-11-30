@@ -1,32 +1,21 @@
-import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import ToastProvider from "@/components/ToastProvider";
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  adjustFontFallback: false,
-});
+import { ClerkProvider } from '@clerk/nextjs';
+import type { Metadata } from 'next';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "School Management Dashboard",
-  description: "Next.js School Management System",
+  title: 'School Management System',
+  description: 'Full-stack school management application',
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <ClerkProvider>
-      <html lang="en" className={inter.className} suppressHydrationWarning>
-        <body>
-          {children}
-          <ToastProvider />
-        </body>
+      <html lang="en">
+        <body>{children}</body>
       </html>
     </ClerkProvider>
   );
