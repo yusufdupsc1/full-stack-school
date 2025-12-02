@@ -16,7 +16,7 @@ type StudentList = Student & { class: Class };
 const StudentListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -96,9 +96,9 @@ const StudentListPage = async ({
     </tr>
   );
 
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
+  const { page, ...queryParams } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
+  const p = pageParam ? parseInt(pageParam, 10) : 1;
 
   // URL PARAMS CONDITION
 
@@ -106,23 +106,28 @@ const StudentListPage = async ({
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "teacherId":
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
-                },
+      if (value === undefined) {
+        continue;
+      }
+      const normalizedValue = Array.isArray(value) ? value[0] : value;
+      if (normalizedValue === undefined) {
+        continue;
+      }
+      switch (key) {
+        case "teacherId":
+          query.class = {
+            lessons: {
+              some: {
+                teacherId: normalizedValue,
               },
-            };
-            break;
-          case "search":
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          default:
-            break;
-        }
+            },
+          };
+          break;
+        case "search":
+          query.name = { contains: normalizedValue };
+          break;
+        default:
+          break;
       }
     }
   }

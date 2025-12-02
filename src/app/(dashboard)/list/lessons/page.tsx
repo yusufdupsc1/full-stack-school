@@ -16,7 +16,7 @@ type LessonList = Lesson & { subject: Subject } & { class: Class } & {
 const LessonListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
 
 const { sessionClaims } = await auth();
@@ -70,9 +70,9 @@ const renderRow = (item: LessonList) => (
   </tr>
 );
 
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
+  const { page, ...queryParams } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
+  const p = pageParam ? parseInt(pageParam, 10) : 1;
 
   // URL PARAMS CONDITION
 
@@ -80,23 +80,36 @@ const renderRow = (item: LessonList) => (
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            query.classId = parseInt(value);
-            break;
-          case "teacherId":
-            query.teacherId = value;
-            break;
-          case "search":
-            query.OR = [
-              { subject: { name: { contains: value, mode: "insensitive" } } },
-              { teacher: { name: { contains: value, mode: "insensitive" } } },
-            ];
-            break;
-          default:
-            break;
-        }
+      if (value === undefined) {
+        continue;
+      }
+      const normalizedValue = Array.isArray(value) ? value[0] : value;
+      if (normalizedValue === undefined) {
+        continue;
+      }
+      switch (key) {
+        case "classId":
+          query.classId = parseInt(normalizedValue, 10);
+          break;
+        case "teacherId":
+          query.teacherId = normalizedValue;
+          break;
+        case "search":
+          query.OR = [
+            {
+              subject: {
+                name: { contains: normalizedValue },
+              },
+            },
+            {
+              teacher: {
+                name: { contains: normalizedValue },
+              },
+            },
+          ];
+          break;
+        default:
+          break;
       }
     }
   }

@@ -13,7 +13,7 @@ type SubjectList = Subject & { teachers: Teacher[] };
 const SubjectListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) => {
   const { sessionClaims } = await auth();
   const role = (sessionClaims?.metadata as { role?: string })?.role;
@@ -56,9 +56,9 @@ const SubjectListPage = async ({
     </tr>
   );
 
-  const { page, ...queryParams } = searchParams;
-
-  const p = page ? parseInt(page) : 1;
+  const { page, ...queryParams } = await searchParams;
+  const pageParam = Array.isArray(page) ? page[0] : page;
+  const p = pageParam ? parseInt(pageParam, 10) : 1;
 
   // URL PARAMS CONDITION
 
@@ -66,14 +66,19 @@ const SubjectListPage = async ({
 
   if (queryParams) {
     for (const [key, value] of Object.entries(queryParams)) {
-      if (value !== undefined) {
-        switch (key) {
-          case "search":
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          default:
-            break;
-        }
+      if (value === undefined) {
+        continue;
+      }
+      const normalizedValue = Array.isArray(value) ? value[0] : value;
+      if (normalizedValue === undefined) {
+        continue;
+      }
+      switch (key) {
+        case "search":
+          query.name = { contains: normalizedValue };
+          break;
+        default:
+          break;
       }
     }
   }

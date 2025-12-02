@@ -3,12 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
-import { subjectSchema, SubjectSchema } from "@/lib/formValidationSchemas";
+import { subjectSchema } from "@/lib/formValidationSchemas";
 import { createSubject, updateSubject } from "@/lib/actions";
 import { useFormState } from "react-dom";
 import { Dispatch, SetStateAction, useEffect } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { z } from "zod";
 
 const SubjectForm = ({
   type,
@@ -25,7 +26,7 @@ const SubjectForm = ({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<SubjectSchema>({
+  } = useForm<z.input<typeof subjectSchema>>({
     resolver: zodResolver(subjectSchema),
   });
 
@@ -41,7 +42,7 @@ const SubjectForm = ({
 
   const onSubmit = handleSubmit((data) => {
     console.log(data);
-    formAction(data);
+    formAction(subjectSchema.parse(data));
   });
 
   const router = useRouter();
