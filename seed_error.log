@@ -1,0 +1,38 @@
+[2mLoaded Prisma config from prisma.config.ts.
+[22m
+PrismaClientKnownRequestError: 
+Invalid `prisma.admin.create()` invocation in
+/home/neo/Music/full-stack-school/prisma/seed.ts:13:22
+
+  10 
+  11 async function main() {
+  12   // ADMIN
+→ 13   await prisma.admin.create(
+Unique constraint failed on the fields: (`username`)
+    at $r.handleRequestError (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/RequestHandler.ts:228:13)
+    at $r.handleAndLogRequestError (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)
+    at $r.request (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)
+    at async a (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:766:24)
+    at async main (/home/neo/Music/full-stack-school/prisma/seed.ts:13:3) {
+  code: 'P2002',
+  meta: {
+    modelName: 'Admin',
+    driverAdapterError: DriverAdapterError: UniqueConstraintViolation
+        at PrismaBetterSqlite3Adapter.onError (/home/neo/Music/full-stack-school/node_modules/@prisma/adapter-better-sqlite3/dist/index.js:575:11)
+        at PrismaBetterSqlite3Adapter.performIO (/home/neo/Music/full-stack-school/node_modules/@prisma/adapter-better-sqlite3/dist/index.js:570:12)
+        at PrismaBetterSqlite3Adapter.queryRaw (/home/neo/Music/full-stack-school/node_modules/@prisma/adapter-better-sqlite3/dist/index.js:511:63)
+        at execute (/home/neo/Music/full-stack-school/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:177:16)
+        at callback (/home/neo/Music/full-stack-school/node_modules/@prisma/client-engine-runtime/src/tracing.ts:68:28)
+        at Object.runInChildSpan (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/core/tracing/TracingHelper.ts:24:12)
+        at ti.runInChildSpan (/home/neo/Music/full-stack-school/node_modules/@prisma/client/src/runtime/core/tracing/TracingHelper.ts:49:42)
+        at withQuerySpanAndEvent (/home/neo/Music/full-stack-school/node_modules/@prisma/client-engine-runtime/src/tracing.ts:56:30)
+        at e.#withQuerySpanAndEvent (/home/neo/Music/full-stack-school/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:356:12)
+        at e.interpretNode (/home/neo/Music/full-stack-school/node_modules/@prisma/client-engine-runtime/src/interpreter/query-interpreter.ts:175:37) {
+      cause: [Object]
+    }
+  },
+  clientVersion: '7.0.1'
+}
+[1m[31m
+An error occurred while running the seed command:[39m[22m
+[31mError: Command failed with exit code 1: npx ts-node --compiler-options {"module":"CommonJS"} prisma/seed.ts[39m
